@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>P2P Hub – Secure Messenger</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-quaternary: #30363d;
+  --bubble-own: #1f4068;
+  --bubble-other: #1c2128;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #58a6ff;
+  --accent-dim: rgba(88, 166, 255, 0.15);
+  --green: #3fb950;
+  --yellow: #d29922;
+  --red: #f85149;
+  --border: #30363d;
+  --shadow: 0 8px 32px rgba(0,0,0,0.6);
+  --radius: 12px;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+  --chatlist-width: 320px;
+  --header-height: 56px;
+  --transition: 150ms ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── SETUP SCREEN ── */
+#setupScreen {
+  position: fixed; inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.setup-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+}
+
+.setup-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.setup-logo-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--accent), #1f6feb);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+
+.setup-logo-text {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.setup-logo-text span {
+  color: var(--accent);
+}
+
+.setup-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.setup-sub {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.setup-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+.setup-input {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: var(--sans);
+  outline: none;
+  transition: border-color var(--transition);
+  margin-bottom: 20px;
+}
+
+.setup-input:focus { border-color: var(--accent); }
+
+.setup-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: opacity var(--transition), transform var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.setup-btn:hover { opacity: 0.9; }
+.setup-btn:active { transform: scale(0.98); }
+.setup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.setup-fingerprint {
+  margin-top: 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: none;
+}
+
+.setup-fingerprint.visible { display: block; }
+
+.fp-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+.fp-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+.fp-sas {
+  font-size: 24px;
+  letter-spacing: 4px;
+}
+
+/* ── JOIN ROOM MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow);
+  transform: translateY(16px);
+  transition: transform 200ms;
+}
+
+.modal-overlay.visible .modal-card {
+  transform: translateY(0);
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.btn-secondary:hover { background: var(--bg-quaternary); }
+
+.btn-primary {
+  flex: 1;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.btn-primary:hover { opacity: 0.9; }
+
+/* ── MAIN APP ── */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--chatlist-width);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 0 16px;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-logo {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  flex: 1;
+}
+
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+
+.icon-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.icon-btn .material-icons { font-size: 20px; }
+
+.connection-bar {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.conn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background 400ms;
+  flex-shrink: 0;
+}
+
+.conn-dot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
+.conn-dot.connected { background: var(--green); }
+.conn-dot.error { background: var(--red); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.conn-text {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-secondary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-list-section {
+  padding: 12px 16px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+}
+
+.room-list-section span { flex: 1; }
+
+.room-list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding: 4px 8px;
+}
+
+.room-list::-webkit-scrollbar { width: 4px; }
+.room-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.room-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background var(--transition);
+  gap: 12px;
+  margin-bottom: 2px;
+}
+
+.room-item:hover { background: var(--bg-tertiary); }
+.room-item.active { background: var(--accent-dim); }
+
+.room-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.room-item.active .room-icon {
+  background: var(--accent-dim);
+  border-color: rgba(88, 166, 255, 0.3);
+}
+
+.room-info { flex: 1; min-width: 0; }
+
+.room-name {
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mono);
+}
+
+.room-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.room-badge {
+  background: var(--accent);
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  font-family: var(--mono);
+}
+
+/* Peers section */
+.peers-section {
+  border-top: 1px solid var(--border);
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.peers-header {
+  padding: 8px 8px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.peer-item {
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 8px;
+  gap: 10px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.peer-item:hover { background: var(--bg-tertiary); }
+
+.peer-avatar {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.peer-status-dot {
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-secondary);
+  background: var(--text-muted);
+}
+
+.peer-status-dot.new { background: var(--red); }
+.peer-status-dot.handshake { background: var(--yellow); }
+.peer-status-dot.connected { background: var(--yellow); }
+.peer-status-dot.verified { background: var(--green); }
+.peer-status-dot.blocked { background: var(--red); }
+
+.peer-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peer-name.me { color: var(--accent); }
+
+.peer-trust {
+  font-size: 12px;
+}
+
+/* ── CHAT AREA ── */
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  min-width: 0;
+  position: relative;
+}
+
+.chat-header {
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.back-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn:hover { background: var(--bg-tertiary); }
+.back-btn .material-icons { font-size: 22px; }
+
+.chat-header-icon {
+  font-size: 20px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.chat-header-info { flex: 1; min-width: 0; }
+
+.chat-header-name {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+.chat-header-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.messages-container::-webkit-scrollbar { width: 4px; }
+.messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Date separator */
+.date-separator {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  padding: 8px 0;
+  position: relative;
+}
+
+.date-separator::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.date-separator span {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-primary);
+  padding: 0 10px;
+}
+
+/* Messages */
+.message-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+.message-sender {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 3px;
+  padding-left: 2px;
+  font-family: var(--mono);
+}
+
+.message-sender.own-sender { text-align: right; padding-right: 2px; color: #7ca5d0; }
+
+.message {
+  max-width: 72%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  position: relative;
+  word-wrap: break-word;
+  user-select: text;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: msgIn 180ms ease-out;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message.own {
+  align-self: flex-end;
+  background: var(--bubble-own);
+  border-bottom-right-radius: 3px;
+}
+
+.message.other {
+  align-self: flex-start;
+  background: var(--bubble-other);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 3px;
+}
+
+.message.encrypted {
+  opacity: 0.5;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.message.system {
+  align-self: center;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  padding: 4px 10px;
+  max-width: 80%;
+  text-align: center;
+}
+
+.message .time {
+  font-size: 10px;
+  color: var(--text-muted);
+  float: right;
+  margin-left: 10px;
+  margin-top: 4px;
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.message.own .time { color: rgba(255,255,255,0.4); }
+
+/* ── INPUT ── */
+.input-area {
+  background: var(--bg-secondary);
+  padding: 10px 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.e2ee-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--green);
+  padding: 0 8px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+  padding: 5px 16px;
+}
+
+.e2ee-badge .material-icons { font-size: 12px; }
+
+.input-field {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--sans);
+  resize: none;
+  outline: none;
+  max-height: 120px;
+  line-height: 1.4;
+  scrollbar-width: none;
+  transition: border-color var(--transition);
+}
+
+.input-field:focus { border-color: rgba(88,166,255,0.4); }
+.input-field::placeholder { color: var(--text-muted); }
+
+.send-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity var(--transition), transform var(--transition);
+  color: #000;
+}
+
+.send-btn:hover { opacity: 0.85; }
+.send-btn:active { transform: scale(0.92); }
+.send-btn .material-icons { font-size: 18px; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 32px;
+}
+
+.empty-state-icon { font-size: 64px; opacity: 0.3; }
+.empty-state-title { font-size: 17px; font-weight: 600; color: var(--text-secondary); }
+.empty-state-sub { font-size: 13px; color: var(--text-muted); max-width: 280px; line-height: 1.6; }
+
+/* ── PEER VERIFY MODAL ── */
+.verify-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow);
+}
+
+.sas-display {
+  font-size: 32px;
+  letter-spacing: 8px;
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.fp-detail {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  word-break: break-all;
+  background: var(--bg-tertiary);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* ── TYPING ── */
+.typing-indicator {
+  align-self: flex-start;
+  background: var(--bubble-other);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 12px;
+  display: none;
+  gap: 4px;
+  align-items: center;
+}
+
+.typing-indicator.visible { display: flex; }
+
+.typing-indicator span {
+  width: 5px; height: 5px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: typingDot 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDot {
+  0%, 80%, 100% { transform: scale(1); opacity: 0.5; }
+  40% { transform: scale(1.3); opacity: 1; }
+}
+
+/* ── NOTIFICATIONS / TOASTS ── */
+#toastContainer {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow);
+  animation: toastIn 250ms ease-out;
+  max-width: 320px;
+}
+
+.toast.warn { border-color: var(--yellow); }
+.toast.error { border-color: var(--red); }
+.toast.success { border-color: var(--green); }
+
+.toast .material-icons { font-size: 18px; color: var(--accent); }
+.toast.warn .material-icons { color: var(--yellow); }
+.toast.error .material-icons { color: var(--red); }
+.toast.success .material-icons { color: var(--green); }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .sidebar { width: 100%; border-right: none; }
+  .chat-window { display: none; width: 100%; }
+  .mobile-chat-open .sidebar { display: none; }
+  .mobile-chat-open .chat-window { display: flex; }
+  .back-btn { display: flex !important; }
+  .setup-card { padding: 28px 24px; }
+}
+
+/* ── MISC ── */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.broker-select {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: var(--mono);
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
+.broker-select option { background: var(--bg-tertiary); }
+
+.setup-offline-note {
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--yellow);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.setup-offline-note .material-icons { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SETUP SCREEN ═══════════════ -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="setup-logo-icon">🔐</div>
+      <div class="setup-logo-text">P2P<span>Hub</span></div>
+    </div>
+    <div class="setup-title">Добро пожаловать</div>
+    <div class="setup-sub">Безопасный децентрализованный чат.<br>Ключи хранятся только в вашем браузере.</div>
+
+    <div class="setup-label">Ваш никнейм</div>
+    <input class="setup-input" id="usernameInput" type="text" placeholder="например: Neo" maxlength="32" autocomplete="off" spellcheck="false">
+
+    <div class="setup-label">MQTT брокер (транспорт)</div>
+    <select class="broker-select" id="brokerSelect">
+      <option value="auto">🔄 Авто (перебрать все брокеры)</option>
+      <option value="wss://broker.hivemq.com:8884/mqtt">HiveMQ :8884</option>
+      <option value="wss://broker.hivemq.com:443/mqtt">HiveMQ :443 (файрвол-friendly)</option>
+      <option value="wss://broker.emqx.io:8084/mqtt">EMQX :8084</option>
+      <option value="wss://broker.emqx.io:443/mqtt">EMQX :443 (файрвол-friendly)</option>
+      <option value="wss://test.mosquitto.org:8081/mqtt">Mosquitto :8081</option>
+      <option value="custom">✏️ Свой адрес...</option>
+    </select>
+    <input class="setup-input" id="customBrokerInput" type="text"
+      placeholder="wss://my-broker.local:8884/mqtt"
+      style="display:none; margin-top:-12px;"
+      autocomplete="off" spellcheck="false">
+
+    <div class="setup-offline-note">
+      <span class="material-icons">info</span>
+      <span>При ошибке приложение автоматически перебирает все брокеры и порты (в т.ч. 443). Для LAN введите свой адрес.</span>
+    </div>
+
+    <button class="setup-btn" id="startBtn" style="margin-top: 20px;">
+      <span id="startBtnText">Создать личность и войти</span>
+      <div class="spinner" id="startSpinner"></div>
+    </button>
+
+    <div class="setup-fingerprint" id="fingerprintBlock">
+      <div class="fp-label">Ваш Identity ID</div>
+      <div class="fp-id" id="myFpId"></div>
+      <div class="fp-label" style="margin-top:8px;">Ваш SAS-отпечаток</div>
+      <div class="fp-sas" id="mySas"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div class="app-container" id="appContainer" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">P2P<span style="color:var(--text-secondary)">Hub</span></span>
+      <button class="icon-btn" id="joinRoomBtn" title="Войти в комнату">
+        <span class="material-icons">add</span>
+      </button>
+      <button class="icon-btn" id="myProfileBtn" title="Мой профиль">
+        <span class="material-icons">person</span>
+      </button>
+    </div>
+
+    <div class="connection-bar">
+      <div class="conn-dot" id="connDot"></div>
+      <div class="conn-text" id="connText">Не подключено</div>
+    </div>
+
+    <div class="room-list-section">
+      <span>Комнаты</span>
+    </div>
+    <div class="room-list" id="roomList">
+      <!-- rooms rendered here -->
+    </div>
+
+    <div class="peers-section" id="peersSection">
+      <div class="peers-header">Участники</div>
+      <div id="peersList"></div>
+    </div>
+  </div>
+
+  <!-- CHAT WINDOW -->
+  <div class="chat-window" id="chatWindow">
+    <div class="empty-state" id="emptyState">
+      <span class="material-icons empty-state-icon">hub</span>
+      <div class="empty-state-title">P2P Hub</div>
+      <div class="empty-state-sub">Нажмите «+» чтобы войти в комнату. Сообщения зашифрованы E2EE прямо в браузере.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODALS ═══════════════ -->
+<div class="modal-overlay" id="joinModal">
+  <div class="modal-card">
+    <div class="modal-title">Войти в комнату</div>
+    <div class="modal-sub">Введите название комнаты. Все сообщения зашифрованы.</div>
+    <div class="setup-label">Название комнаты</div>
+    <input class="setup-input" id="roomNameInput" type="text" placeholder="например: matrix" maxlength="64" autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button class="btn-secondary" id="joinModalCancel">Отмена</button>
+      <button class="btn-primary" id="joinModalOk">Войти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="verifyModal">
+  <div class="modal-card verify-card">
+    <div class="modal-title">Проверка личности</div>
+    <div class="modal-sub" id="verifyModalSub">Сравните SAS-отпечаток с собеседником по другому каналу.</div>
+    <div class="sas-display" id="verifySas"></div>
+    <div class="fp-detail" id="verifyFpDetail"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="verifyBlock" style="color:var(--red);border-color:var(--red);">Заблокировать</button>
+      <button class="btn-primary" id="verifyOk">Подтвердить ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileModal">
+  <div class="modal-card">
+    <div class="modal-title">Мой профиль</div>
+    <div class="modal-sub">Ваш криптографический паспорт</div>
+    <div class="fp-label">Никнейм</div>
+    <div id="profileUsername" style="margin-bottom:12px; font-weight:600;"></div>
+    <div class="fp-label">Identity ID</div>
+    <div class="fp-detail" id="profileId"></div>
+    <div class="fp-label">SAS-отпечаток</div>
+    <div class="sas-display" id="profileSas" style="font-size:24px;letter-spacing:6px;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="profileClose">Закрыть</button>
+      <button class="btn-secondary" id="profileRegen" style="color:var(--red);">Сбросить ключи</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.3.5/mqtt.min.js"></script>
+<script>
+'use strict';
+(async function() {
+
+// ══════════════════════════════════════════════
+// CRYPTO PROVIDER
+// ══════════════════════════════════════════════
+const Crypto = {
+  async generateIdentityKeyPair() {
+    return await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true, ['sign', 'verify']
+    );
+  },
+
+  async generateEphemeralKeyPair() {
+    return await crypto.subtle.generateKey(
+      { name: 'ECDH', namedCurve: 'P-256' },
+      true, ['deriveKey']
+    );
+  },
+
+  async generateSymmetricKey() {
+    return await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 },
+      true, ['encrypt', 'decrypt']
+    );
+  },
+
+  async exportPublicKey(key) {
+    const raw = await crypto.subtle.exportKey('spki', key);
+    return btoa(String.fromCharCode(...new Uint8Array(raw)));
+  },
+
+  async exportPrivateKey(key) {
+    const raw = await crypto.subtle.exportKey('pkcs8', key);
+    return btoa(String.fromCharCode(...new Uint8Array(raw)));
+  },
+
+  async exportSymmetricKey(key) {
+    const raw = await crypto.subtle.exportKey('raw', key);
+    return btoa(String.fromCharCode(...new Uint8Array(raw)));
+  },
+
+  async importPublicKey(b64, usage = 'verify') {
+    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    if (usage === 'verify') {
+      return await crypto.subtle.importKey(
+        'spki', raw, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify']
+      );
+    } else {
+      return await crypto.subtle.importKey(
+        'spki', raw, { name: 'ECDH', namedCurve: 'P-256' }, true, []
+      );
+    }
+  },
+
+  async importPrivateKey(b64, algo) {
+    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    if (algo === 'ECDSA') {
+      return await crypto.subtle.importKey(
+        'pkcs8', raw, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']
+      );
+    } else {
+      return await crypto.subtle.importKey(
+        'pkcs8', raw, { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']
+      );
+    }
+  },
+
+  async importSymmetricKey(b64) {
+    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    return await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']);
+  },
+
+  async computeIdentityId(publicKey) {
+    const raw = await crypto.subtle.exportKey('spki', publicKey);
+    const hash = await crypto.subtle.digest('SHA-256', raw);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+  },
+
+  async generateSas(data) {
+    // 64 unique emojis — no duplicates, chosen for visual distinctiveness
+    const EMOJIS = [
+      '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮',
+      '🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐗',
+      '🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🦂','🐢',
+      '🐍','🦎','🦕','🦖','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟',
+      '🐬','🐳','🦈','🦭','🦊','🐿','🦔','🌵','🌲','🌳','🌴','🌺',
+      '🌸','🌼','🌻','🍄'
+    ];
+    let bytes;
+    if (typeof data === 'string') {
+      const enc = new TextEncoder().encode(data);
+      bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', enc));
+    } else {
+      bytes = new Uint8Array(data);
+    }
+    // Use 4 separate byte positions spread across the hash for better entropy
+    return [bytes[0], bytes[8], bytes[16], bytes[24]]
+      .map(b => EMOJIS[b % EMOJIS.length]).join('');
+  },
+
+  async sign(privateKey, data) {
+    const enc = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+    const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, enc);
+    return btoa(String.fromCharCode(...new Uint8Array(sig)));
+  },
+
+  async verify(publicKey, signatureB64, data) {
+    try {
+      const sig = Uint8Array.from(atob(signatureB64), c => c.charCodeAt(0));
+      const enc = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+      return await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, sig, enc);
+    } catch { return false; }
+  },
+
+  async deriveSharedSecret(myPrivate, remotePublic) {
+    return await crypto.subtle.deriveKey(
+      { name: 'ECDH', public: remotePublic },
+      myPrivate,
+      { name: 'AES-GCM', length: 256 },
+      true, ['encrypt', 'decrypt']
+    );
+  },
+
+  async encrypt(key, data) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc);
+    const out = new Uint8Array(12 + ct.byteLength);
+    out.set(iv, 0);
+    out.set(new Uint8Array(ct), 12);
+    return btoa(String.fromCharCode(...out));
+  },
+
+  async decrypt(key, b64) {
+    const raw = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const iv = raw.slice(0, 12);
+    const ct = raw.slice(12);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return new TextDecoder().decode(plain);
+  }
+};
+
+// ══════════════════════════════════════════════
+// KEY MANAGER (localStorage)
+// ══════════════════════════════════════════════
+const KeyManager = {
+  _identity: null,
+  _peers: new Map(),   // id -> Peer
+  _sharedSecrets: new Map(), // id -> [{ key, ts }]
+  _senderKeys: new Map(),    // `${peerId}:${roomId}` -> [{ key, ts }]
+  _mySenderKeys: new Map(),  // roomId -> key
+
+  async init() {
+    const stored = localStorage.getItem('p2phub_identity');
+    if (stored) {
+      const d = JSON.parse(stored);
+      const pubKey = await Crypto.importPublicKey(d.publicKey);
+      const privKey = await Crypto.importPrivateKey(d.privateKey, 'ECDSA');
+      const id = await Crypto.computeIdentityId(pubKey);
+      const sas = await Crypto.generateSas(id);
+      this._identity = { id, keyPair: { publicKey: pubKey, privateKey: privKey }, username: d.username, sas };
+      return true;
+    }
+    return false;
+  },
+
+  async generateNewIdentity(username) {
+    const kp = await Crypto.generateIdentityKeyPair();
+    const id = await Crypto.computeIdentityId(kp.publicKey);
+    const sas = await Crypto.generateSas(id);
+    this._identity = { id, keyPair: kp, username, sas };
+    await this.saveMyIdentity();
+    return this._identity;
+  },
+
+  async saveMyIdentity() {
+    const kp = this._identity.keyPair;
+    const pubB64 = await Crypto.exportPublicKey(kp.publicKey);
+    const privB64 = await Crypto.exportPrivateKey(kp.privateKey);
+    localStorage.setItem('p2phub_identity', JSON.stringify({
+      publicKey: pubB64, privateKey: privB64, username: this._identity.username
+    }));
+  },
+
+  clearMyIdentity() {
+    localStorage.removeItem('p2phub_identity');
+    this._identity = null;
+    this._peers.clear();
+    this._sharedSecrets.clear();
+    this._senderKeys.clear();
+    this._mySenderKeys.clear();
+  },
+
+  getMyIdentity() { return this._identity; },
+
+  async getMySenderKey(roomId) {
+    if (!this._mySenderKeys.has(roomId)) {
+      const key = await Crypto.generateSymmetricKey();
+      this._mySenderKeys.set(roomId, key);
+    }
+    return this._mySenderKeys.get(roomId);
+  },
+
+  async rotateMySenderKey(roomId) {
+    const key = await Crypto.generateSymmetricKey();
+    this._mySenderKeys.set(roomId, key);
+    return key;
+  },
+
+  async ensurePeer(id, publicKeyB64, username) {
+    const existing = this._peers.get(id);
+    if (existing) {
+      const existingPubB64 = await Crypto.exportPublicKey(existing.identityKey);
+      if (existingPubB64 !== publicKeyB64) {
+        throw new Error(`MITM_DETECTED:${id}`);
+      }
+      if (username && existing.username !== username) {
+        existing.username = username;
+      }
+      return existing;
+    }
+    const identityKey = await Crypto.importPublicKey(publicKeyB64);
+    const sas = await Crypto.generateSas(id);
+    const peer = { id, identityKey, identityKeyB64: publicKeyB64, username: username || id.slice(0,8), sas, trustStatus: 'new', sharedSecrets: [], senderKeys: new Map() };
+    this._peers.set(id, peer);
+    return peer;
+  },
+
+  getPeer(id) { return this._peers.get(id); },
+  getAllPeers() { return [...this._peers.values()]; },
+
+  setPeerTrust(id, status) {
+    const p = this._peers.get(id);
+    if (p) p.trustStatus = status;
+  },
+
+  async saveSharedSecret(peerId, key) {
+    if (!this._sharedSecrets.has(peerId)) this._sharedSecrets.set(peerId, []);
+    this._sharedSecrets.get(peerId).push({ key, validFrom: Date.now() });
+  },
+
+  async getSharedSecret(peerId) {
+    const arr = this._sharedSecrets.get(peerId);
+    if (!arr || arr.length === 0) return undefined;
+    return arr[arr.length - 1].key;
+  },
+
+  async savePeerSenderKey(peerId, roomId, key) {
+    const k = `${peerId}:${roomId}`;
+    if (!this._senderKeys.has(k)) this._senderKeys.set(k, []);
+    this._senderKeys.get(k).push({ key, validFrom: Date.now() });
+  },
+
+  async getPeerSenderKey(peerId, roomId) {
+    const k = `${peerId}:${roomId}`;
+    const arr = this._senderKeys.get(k);
+    if (!arr || arr.length === 0) return undefined;
+    return arr[arr.length - 1].key;
+  }
+};
+
+// ══════════════════════════════════════════════
+// TRANSPORT (MQTT) — автоперебор всех брокеров + fallback порт 443
+// ══════════════════════════════════════════════
+
+// Каждый брокер дублируется на порту 443 — он не блокируется файрволами.
+// Порядок: стандартные порты, затем 443-fallback каждого.
+const BROKERS = [
+  { url: 'wss://broker.hivemq.com:8884/mqtt',        label: 'HiveMQ :8884' },
+  { url: 'wss://broker.emqx.io:8084/mqtt',           label: 'EMQX :8084' },
+  { url: 'wss://test.mosquitto.org:8081/mqtt',       label: 'Mosquitto :8081' },
+  { url: 'wss://broker.hivemq.com:443/mqtt',         label: 'HiveMQ :443' },
+  { url: 'wss://broker.emqx.io:443/mqtt',            label: 'EMQX :443' },
+];
+
+const Transport = {
+  _client: null,
+  _handlers: [],
+  _subscriptions: new Set(),
+  _status: 'disconnected',
+
+  _tryBroker(brokerUrl, timeoutMs = 9000) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let connected = false;
+
+      const done = (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (err) {
+          try { this._client && this._client.end(true); } catch {}
+          this._client = null;
+          reject(err);
+        } else {
+          resolve();
+        }
+      };
+
+      const timer = setTimeout(() => done(new Error('timeout')), timeoutMs);
+
+      const clientId = 'p2phub_' + Math.random().toString(36).slice(2, 10);
+      const client = mqtt.connect(brokerUrl, {
+        clientId,
+        clean: true,
+        connectTimeout: timeoutMs,
+        reconnectPeriod: 0,
+        keepalive: 30,
+        protocolVersion: 4,
+      });
+
+      this._client = client;
+
+      client.on('connect', () => {
+        connected = true;
+        this._status = 'connected';
+        try {
+          const u = new URL(brokerUrl);
+          updateConnStatus('connected', u.hostname + ':' + u.port);
+        } catch { updateConnStatus('connected', brokerUrl); }
+        this._subscriptions.forEach(t => client.subscribe(t));
+        // Включаем авто-реконнект только после первого успешного connect
+        client.options.reconnectPeriod = 5000;
+        done(null);
+      });
+
+      client.on('error', (err) => {
+        // Ошибки после успешного connect уйдут в reconnect — игнорируем
+        if (!connected) done(err);
+      });
+
+      client.on('close', () => {
+        // close может прийти нормально после disconnect() — реджектим только до connect
+        if (!connected) done(new Error('connection closed'));
+      });
+
+      client.on('offline', () => {
+        if (this._status === 'connected') {
+          this._status = 'reconnecting';
+          updateConnStatus('connecting', 'Переподключение...');
+        }
+      });
+
+      client.on('reconnect', () => {
+        if (this._status !== 'connected') {
+          updateConnStatus('connecting', 'Переподключение...');
+        }
+      });
+
+      client.on('message', (topic, payload) => {
+        this._handlers.forEach(h => h(topic, payload));
+      });
+    });
+  },
+
+  // preferredUrl: конкретный URL, или null для авто-перебора всех
+  async connect(preferredUrl) {
+    const queue = [];
+
+    if (preferredUrl) {
+      const inList = BROKERS.find(b => b.url === preferredUrl);
+      if (!inList) {
+        // Кастомный адрес — пробуем первым, потом штатные как fallback
+        queue.push({ url: preferredUrl, label: 'Custom' });
+      } else {
+        // Выбранный — первым, остальные за ним
+        queue.push(inList);
+      }
+    }
+    // Добавляем все остальные брокеры как fallback
+    BROKERS.filter(b => b.url !== preferredUrl).forEach(b => queue.push(b));
+
+    let lastErr;
+    for (const broker of queue) {
+      updateConnStatus('connecting', broker.label + '...');
+      try {
+        await this._tryBroker(broker.url);
+        return; // успех
+      } catch (err) {
+        lastErr = err;
+        console.warn('[Transport]', broker.label, 'failed:', err.message);
+        updateConnStatus('error', broker.label + ' — недоступен');
+        await new Promise(r => setTimeout(r, 400));
+      }
+    }
+    this._status = 'error';
+    throw new Error('Все брокеры недоступны');
+  },
+
+  subscribe(topic) {
+    this._subscriptions.add(topic);
+    return new Promise((resolve) => {
+      if (this._client && this._status === 'connected') {
+        this._client.subscribe(topic, { qos: 0 }, () => resolve());
+      } else {
+        resolve(); // будет подписано при reconnect
+      }
+    });
+  },
+
+  unsubscribe(topic) {
+    this._subscriptions.delete(topic);
+    if (this._client) this._client.unsubscribe(topic);
+  },
+
+  send(topic, payload) {
+    if (!this._client || this._status !== 'connected') return;
+    const msg = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    this._client.publish(topic, msg, { qos: 0 });
+  },
+
+  onMessage(handler) { this._handlers.push(handler); }
+};
+
+// ══════════════════════════════════════════════
+// P2P CLIENT
+// ══════════════════════════════════════════════
+const Client = {
+  _rooms: new Map(),   // roomId -> { messages: [], unread }
+  _activeRoom: null,
+  _processedMsgIds: new Set(),
+
+  async init() {
+    Transport.onMessage((topic, payload) => this._handleIncoming(topic, payload));
+  },
+
+  async joinRoom(roomId) {
+    if (this._rooms.has(roomId)) {
+      this._setActiveRoom(roomId);
+      return;
+    }
+    this._rooms.set(roomId, { messages: [], unread: 0 });
+
+    // Дождаться ack от брокера перед отправкой ANNOUNCE —
+    // иначе наш же пакет придёт раньше чем мы подписаны.
+    const myId = KeyManager.getMyIdentity().id;
+    await Promise.all([
+      Transport.subscribe(`p2p/${roomId}/discovery`),
+      Transport.subscribe(`p2p/${roomId}/messages`),
+      Transport.subscribe(`p2p/${roomId}/inbox/${myId}`),
+    ]);
+
+    renderRooms();
+    this._setActiveRoom(roomId);
+    await this._sendAnnounce(roomId);
+    addSystemMessage(roomId, `🔐 Вошли в #${roomId}. Ожидаем участников...`);
+  },
+
+  async leaveRoom(roomId) {
+    // Оповестить остальных об уходе
+    await this._sendLeave(roomId);
+
+    const myId = KeyManager.getMyIdentity().id;
+    Transport.unsubscribe(`p2p/${roomId}/discovery`);
+    Transport.unsubscribe(`p2p/${roomId}/messages`);
+    Transport.unsubscribe(`p2p/${roomId}/inbox/${myId}`);
+    this._rooms.delete(roomId);
+    if (this._activeRoom === roomId) {
+      this._activeRoom = null;
+      showEmptyState();
+    }
+    renderRooms();
+  },
+
+  _setActiveRoom(roomId) {
+    this._activeRoom = roomId;
+    const room = this._rooms.get(roomId);
+    if (room) room.unread = 0;
+    renderChatWindow(roomId);
+    renderRooms();
+  },
+
+  async sendTextMessage(roomId, text) {
+    const identity = KeyManager.getMyIdentity();
+    const senderKey = await KeyManager.getMySenderKey(roomId);
+    const payload = await Crypto.encrypt(senderKey, text);
+    const msgId = genId();
+    const timestamp = Date.now();
+
+    const packet = {
+      type: 'TEXT_MESSAGE',
+      msgId,
+      identityId: identity.id,
+      payload,
+      timestamp
+    };
+
+    Transport.send(`p2p/${roomId}/messages`, packet);
+    this._processedMsgIds.add(msgId);
+
+    // Show own message immediately
+    const room = this._rooms.get(roomId);
+    if (room) {
+      const msg = { type: 'own', text, time: fmtTime(timestamp), msgId };
+      room.messages.push(msg);
+      if (this._activeRoom === roomId) appendMessage(msg);
+    }
+  },
+
+  async _sendAnnounce(roomId) {
+    const identity = KeyManager.getMyIdentity();
+    const pubKeyB64 = await Crypto.exportPublicKey(identity.keyPair.publicKey);
+    const data = JSON.stringify({ username: identity.username });
+    const msgId = genId();
+    const timestamp = Date.now();
+    const sigData = JSON.stringify({ msgId, identityKey: pubKeyB64, data, timestamp });
+    const signature = await Crypto.sign(identity.keyPair.privateKey, sigData);
+
+    const packet = { type: 'ANNOUNCE', msgId, identityKey: pubKeyB64, data, timestamp, signature };
+    Transport.send(`p2p/${roomId}/discovery`, packet);
+    this._processedMsgIds.add(msgId);
+  },
+
+  async _sendLeave(roomId) {
+    const identity = KeyManager.getMyIdentity();
+    const msgId = genId();
+    const timestamp = Date.now();
+    const sigData = JSON.stringify({ msgId, identityId: identity.id, roomId, timestamp });
+    const signature = await Crypto.sign(identity.keyPair.privateKey, sigData);
+    const packet = { type: 'LEAVE', msgId, identityId: identity.id, roomId, timestamp, signature };
+    Transport.send(`p2p/${roomId}/discovery`, packet);
+    this._processedMsgIds.add(msgId);
+  },
+
+  async _sendHandshakeInit(roomId, peerId) {
+    const identity = KeyManager.getMyIdentity();
+    const ephemeral = await Crypto.generateEphemeralKeyPair();
+    const ephPubB64 = await Crypto.exportPublicKey(ephemeral.publicKey);
+
+    // Store private ephemeral for when we get reply
+    this._pendingEphemeral = this._pendingEphemeral || new Map();
+    this._pendingEphemeral.set(peerId, ephemeral.privateKey);
+
+    const msgId = genId();
+    const timestamp = Date.now();
+    const sigData = JSON.stringify({ msgId, identityId: identity.id, ephemeralKey: ephPubB64, timestamp });
+    const signature = await Crypto.sign(identity.keyPair.privateKey, sigData);
+
+    const packet = { type: 'HANDSHAKE_INIT', msgId, identityId: identity.id, ephemeralKey: ephPubB64, timestamp, signature };
+    Transport.send(`p2p/${roomId}/inbox/${peerId}`, packet);
+    this._processedMsgIds.add(msgId);
+  },
+
+  async _sendHandshakeReply(roomId, peerId, peerEphPubB64) {
+    const identity = KeyManager.getMyIdentity();
+    const myEphemeral = await Crypto.generateEphemeralKeyPair();
+    const myEphPubB64 = await Crypto.exportPublicKey(myEphemeral.publicKey);
+
+    // Derive shared secret
+    const peerEphPub = await Crypto.importPublicKey(peerEphPubB64, 'ecdh');
+    const sharedSecret = await Crypto.deriveSharedSecret(myEphemeral.privateKey, peerEphPub);
+    await KeyManager.saveSharedSecret(peerId, sharedSecret);
+
+    const msgId = genId();
+    const timestamp = Date.now();
+    const sigData = JSON.stringify({ msgId, identityId: identity.id, ephemeralKey: myEphPubB64, timestamp });
+    const signature = await Crypto.sign(identity.keyPair.privateKey, sigData);
+
+    const packet = { type: 'HANDSHAKE_REPLY', msgId, identityId: identity.id, ephemeralKey: myEphPubB64, timestamp, signature };
+    Transport.send(`p2p/${roomId}/inbox/${peerId}`, packet);
+    this._processedMsgIds.add(msgId);
+  },
+
+  async _sendSenderKeyShare(roomId, peerId) {
+    const sharedSecret = await KeyManager.getSharedSecret(peerId);
+    if (!sharedSecret) return;
+    const senderKey = await KeyManager.getMySenderKey(roomId);
+    const senderKeyB64 = await Crypto.exportSymmetricKey(senderKey);
+    const encryptedSenderKey = await Crypto.encrypt(sharedSecret, senderKeyB64);
+    const identity = KeyManager.getMyIdentity();
+    const msgId = genId();
+
+    const packet = { type: 'SENDER_KEY_SHARE', msgId, identityId: identity.id, roomId, encryptedSenderKey, timestamp: Date.now() };
+    Transport.send(`p2p/${roomId}/inbox/${peerId}`, packet);
+    this._processedMsgIds.add(msgId);
+  },
+
+  async _handleIncoming(topic, payloadBuf) {
+    let packet;
+    try {
+      packet = JSON.parse(payloadBuf.toString());
+    } catch { return; }
+
+    if (!packet.msgId) return;
+    if (this._processedMsgIds.has(packet.msgId)) return;
+    if (packet.timestamp && Math.abs(Date.now() - packet.timestamp) > 60000) return; // 60s window
+
+    this._processedMsgIds.add(packet.msgId);
+
+    // Attach source topic so handlers can check channel
+    packet._sourceTopic = topic;
+
+    // Parse topic: p2p/{roomId}/{channel}
+    const parts = topic.split('/');
+    const roomId = parts[1];
+
+    try {
+      switch (packet.type) {
+        case 'ANNOUNCE': await this._onAnnounce(roomId, packet); break;
+        case 'LEAVE': await this._onLeave(roomId, packet); break;
+        case 'HANDSHAKE_INIT': await this._onHandshakeInit(roomId, packet); break;
+        case 'HANDSHAKE_REPLY': await this._onHandshakeReply(roomId, packet); break;
+        case 'SENDER_KEY_SHARE': await this._onSenderKeyShare(roomId, packet); break;
+        case 'TEXT_MESSAGE': await this._onTextMessage(roomId, packet); break;
+      }
+    } catch(e) {
+      if (e.message && e.message.startsWith('MITM_DETECTED')) {
+        showToast('⚠️ ВНИМАНИЕ: Возможная MITM-атака! Ключ собеседника изменился.', 'error');
+      }
+      console.error('Handle error:', e);
+    }
+  },
+
+  async _onAnnounce(roomId, packet) {
+    const myId = KeyManager.getMyIdentity().id;
+    const pubKeyB64 = packet.identityKey;
+
+    // Verify signature
+    const pubKey = await Crypto.importPublicKey(pubKeyB64);
+    const sigData = JSON.stringify({ msgId: packet.msgId, identityKey: pubKeyB64, data: packet.data, timestamp: packet.timestamp });
+    const valid = await Crypto.verify(pubKey, packet.signature, sigData);
+    if (!valid) return;
+
+    // Compute peer id from their public key (authoritative)
+    const peerId = await Crypto.computeIdentityId(pubKey);
+    if (peerId === myId) return; // own echo
+
+    let meta = {};
+    try { meta = JSON.parse(packet.data); } catch {}
+
+    let peer;
+    try {
+      peer = await KeyManager.ensurePeer(peerId, pubKeyB64, meta.username);
+    } catch (e) {
+      if (e.message && e.message.startsWith('MITM_DETECTED')) {
+        showToast('⚠️ MITM-атака! Ключ пользователя изменился!', 'error');
+        return;
+      }
+      throw e;
+    }
+
+    renderPeers();
+
+    const topic_parts = packet._sourceTopic ? packet._sourceTopic.split('/') : [];
+    const isDiscovery = topic_parts[2] === 'discovery';
+
+    // Если ANNOUNCE пришёл из общего канала discovery — старожил отвечает
+    // своим ANNOUNCE напрямую в inbox новичка, чтобы тот нас увидел.
+    if (isDiscovery) {
+      const identity = KeyManager.getMyIdentity();
+      const myPubB64 = await Crypto.exportPublicKey(identity.keyPair.publicKey);
+      const data = JSON.stringify({ username: identity.username });
+      const msgId = genId();
+      const timestamp = Date.now();
+      const sigData2 = JSON.stringify({ msgId, identityKey: myPubB64, data, timestamp });
+      const signature = await Crypto.sign(identity.keyPair.privateKey, sigData2);
+      const replyPacket = { type: 'ANNOUNCE', msgId, identityKey: myPubB64, data, timestamp, signature };
+      Transport.send(`p2p/${roomId}/inbox/${peerId}`, replyPacket);
+      this._processedMsgIds.add(msgId);
+    }
+
+    const existing = await KeyManager.getSharedSecret(peerId);
+    if (existing) {
+      // Уже знакомы — переотправить SenderKey если нужно (например, ре-коннект)
+      if (peer.trustStatus === 'verified') {
+        this._sharedSenderKeys = this._sharedSenderKeys || new Set();
+        const shareToken = `${roomId}:${peerId}`;
+        if (!this._sharedSenderKeys.has(shareToken)) {
+          this._sharedSenderKeys.add(shareToken);
+          await this._sendSenderKeyShare(roomId, peerId);
+        }
+      }
+      return;
+    }
+
+    // Нет shared secret — запускаем handshake.
+    // Чтобы избежать гонки (оба шлют INIT одновременно и оба ждут REPLY),
+    // инициатором всегда становится тот у кого меньший ID (лексикографически).
+    // Второй ждёт INIT и отвечает REPLY.
+    this._pendingEphemeral = this._pendingEphemeral || new Map();
+    if (myId < peerId) {
+      // Мы — инициатор
+      if (!this._pendingEphemeral.has(peerId)) {
+        await this._sendHandshakeInit(roomId, peerId);
+        renderPeers();
+      }
+    }
+    // Если myId > peerId — ждём INIT от них. Они тоже получили наш ANNOUNCE
+    // и по той же логике станут инициатором.
+  },
+
+  async _onLeave(roomId, packet) {
+    const peer = KeyManager.getPeer(packet.identityId);
+    if (!peer) return;
+
+    // Верифицируем подпись
+    const sigData = JSON.stringify({ msgId: packet.msgId, identityId: packet.identityId, roomId: packet.roomId, timestamp: packet.timestamp });
+    const valid = await Crypto.verify(peer.identityKey, packet.signature, sigData);
+    if (!valid) return;
+
+    // Удаляем peer из списка
+    KeyManager._peers.delete(packet.identityId);
+    // Сбрасываем shared sender keys чтобы при возвращении обменяться заново
+    this._sharedSenderKeys = this._sharedSenderKeys || new Set();
+    for (const [roomId2] of this._rooms) {
+      this._sharedSenderKeys.delete(`${roomId2}:${packet.identityId}`);
+    }
+
+    renderPeers();
+    addSystemMessage(roomId, `👋 ${peer.username} покинул комнату`);
+  },
+
+  async _onHandshakeInit(roomId, packet) {
+    const myId = KeyManager.getMyIdentity().id;
+    if (packet.identityId === myId) return;
+
+    // Peer может ещё не быть зарегистрирован если HANDSHAKE_INIT обогнал ANNOUNCE.
+    // Ждём до 3 секунд пока peer появится.
+    let peer = KeyManager.getPeer(packet.identityId);
+    if (!peer) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      peer = KeyManager.getPeer(packet.identityId);
+    }
+    if (!peer) return; // всё равно нет — игнорируем
+
+    // Verify signature
+    const sigData = JSON.stringify({ msgId: packet.msgId, identityId: packet.identityId, ephemeralKey: packet.ephemeralKey, timestamp: packet.timestamp });
+    const valid = await Crypto.verify(peer.identityKey, packet.signature, sigData);
+    if (!valid) return;
+
+    await this._sendHandshakeReply(roomId, packet.identityId, packet.ephemeralKey);
+    peer.trustStatus = 'connected';
+    renderPeers();
+
+    // Also share our sender key for all joined rooms (replier side)
+    for (const [rId] of this._rooms) {
+      this._sharedSenderKeys = this._sharedSenderKeys || new Set();
+      const shareToken = `${rId}:${packet.identityId}`;
+      if (!this._sharedSenderKeys.has(shareToken)) {
+        this._sharedSenderKeys.add(shareToken);
+        await this._sendSenderKeyShare(rId, packet.identityId);
+      }
+    }
+  },
+
+  async _onHandshakeReply(roomId, packet) {
+    const myId = KeyManager.getMyIdentity().id;
+    if (packet.identityId === myId) return;
+
+    const peer = KeyManager.getPeer(packet.identityId);
+    if (!peer) return;
+
+    // Verify signature
+    const sigData = JSON.stringify({ msgId: packet.msgId, identityId: packet.identityId, ephemeralKey: packet.ephemeralKey, timestamp: packet.timestamp });
+    const valid = await Crypto.verify(peer.identityKey, packet.signature, sigData);
+    if (!valid) return;
+
+    // Derive shared secret from our pending ephemeral + their ephemeral public
+    this._pendingEphemeral = this._pendingEphemeral || new Map();
+    const myEphPriv = this._pendingEphemeral.get(packet.identityId);
+    if (!myEphPriv) return;
+
+    const peerEphPub = await Crypto.importPublicKey(packet.ephemeralKey, 'ecdh');
+    const sharedSecret = await Crypto.deriveSharedSecret(myEphPriv, peerEphPub);
+    await KeyManager.saveSharedSecret(packet.identityId, sharedSecret);
+    this._pendingEphemeral.delete(packet.identityId);
+
+    peer.trustStatus = 'connected';
+    renderPeers();
+
+    // Auto-share sender key for all joined rooms (TOFU: trust on first handshake completion)
+    for (const [rId] of this._rooms) {
+      await this._sendSenderKeyShare(rId, packet.identityId);
+    }
+
+    addSystemMessage(roomId, `🤝 Рукопожатие с ${peer.username} завершено`);
+    showToast(`Рукопожатие с ${peer.username}`, 'success');
+  },
+
+  async _onSenderKeyShare(roomId, packet) {
+    const myId = KeyManager.getMyIdentity().id;
+    if (packet.identityId === myId) return;
+
+    const peer = KeyManager.getPeer(packet.identityId);
+    if (!peer) return;
+
+    const sharedSecret = await KeyManager.getSharedSecret(packet.identityId);
+    if (!sharedSecret) return;
+
+    const senderKeyB64 = await Crypto.decrypt(sharedSecret, packet.encryptedSenderKey);
+    const senderKey = await Crypto.importSymmetricKey(senderKeyB64);
+    const rId = packet.roomId || roomId;
+    await KeyManager.savePeerSenderKey(packet.identityId, rId, senderKey);
+
+    const wasVerified = peer.trustStatus === 'verified';
+    peer.trustStatus = 'verified';
+    renderPeers();
+    addSystemMessage(rId, `🔑 Получен ключ от ${peer.username} — сообщения теперь читаемы`);
+
+    // Share our key back only if we haven't already (avoid infinite loop).
+    // We detect this by checking if they already have our sender key — if we
+    // haven't shared before, _sharedWithPeers won't have the entry.
+    this._sharedSenderKeys = this._sharedSenderKeys || new Set();
+    const shareToken = `${rId}:${packet.identityId}`;
+    if (!this._sharedSenderKeys.has(shareToken)) {
+      this._sharedSenderKeys.add(shareToken);
+      await this._sendSenderKeyShare(rId, packet.identityId);
+    }
+  },
+
+  async _onTextMessage(roomId, packet) {
+    const myId = KeyManager.getMyIdentity().id;
+    if (packet.identityId === myId) return;
+    if (!this._rooms.has(roomId)) return;
+
+    const peer = KeyManager.getPeer(packet.identityId);
+    const username = peer ? peer.username : packet.identityId.slice(0,8);
+
+    let text;
+    const senderKey = await KeyManager.getPeerSenderKey(packet.identityId, roomId);
+    if (senderKey) {
+      try {
+        text = await Crypto.decrypt(senderKey, packet.payload);
+      } catch {
+        text = null;
+      }
+    }
+
+    const room = this._rooms.get(roomId);
+    const msg = {
+      type: 'other',
+      text: text || null,
+      encrypted: !text,
+      username,
+      peerId: packet.identityId,
+      time: fmtTime(packet.timestamp),
+      msgId: packet.msgId
+    };
+    room.messages.push(msg);
+
+    if (this._activeRoom === roomId) {
+      appendMessage(msg);
+    } else {
+      room.unread = (room.unread || 0) + 1;
+      renderRooms();
+    }
+  },
+
+  async verifyPeer(peerId) {
+    const peer = KeyManager.getPeer(peerId);
+    if (!peer) return;
+    openVerifyModal(peer);
+  },
+
+  async markPeerTrust(peerId, status) {
+    KeyManager.setPeerTrust(peerId, status);
+    renderPeers();
+
+    if (status === 'verified') {
+      // Share sender keys for all active rooms
+      for (const [roomId] of this._rooms) {
+        await this._sendSenderKeyShare(roomId, peerId);
+      }
+      showToast(`✅ ${KeyManager.getPeer(peerId)?.username} верифицирован`, 'success');
+    } else {
+      showToast(`🚫 ${KeyManager.getPeer(peerId)?.username} заблокирован`, 'warn');
+    }
+  },
+
+  getRoom(roomId) { return this._rooms.get(roomId); },
+  getRooms() { return this._rooms; },
+  getActiveRoom() { return this._activeRoom; }
+};
+
+// ══════════════════════════════════════════════
+// UI
+// ══════════════════════════════════════════════
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function updateConnStatus(status, text) {
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connText');
+  dot.className = 'conn-dot ' + status;
+  txt.textContent = text;
+}
+
+function showToast(msg, type = 'info') {
+  const icons = { info: 'info', success: 'check_circle', warn: 'warning', error: 'error' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="material-icons">${icons[type]||'info'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function renderRooms() {
+  const list = document.getElementById('roomList');
+  const active = Client.getActiveRoom();
+  const rooms = Client.getRooms();
+
+  if (rooms.size === 0) {
+    list.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--text-muted);text-align:center;">Нет комнат. Нажмите «+»</div>`;
+    return;
+  }
+
+  list.innerHTML = '';
+  rooms.forEach((room, roomId) => {
+    const div = document.createElement('div');
+    div.className = 'room-item' + (roomId === active ? ' active' : '');
+    const lastMsg = room.messages.filter(m => m.type !== 'system').slice(-1)[0];
+    const preview = lastMsg ? (lastMsg.encrypted ? '🔒 зашифровано' : (lastMsg.text || '').slice(0, 30)) : 'Нет сообщений';
+    div.innerHTML = `
+      <div class="room-icon">#</div>
+      <div class="room-info">
+        <div class="room-name">${roomId}</div>
+        <div class="room-meta">${preview}</div>
+      </div>
+      ${room.unread > 0 ? `<div class="room-badge">${room.unread}</div>` : ''}
+    `;
+    div.addEventListener('click', () => Client._setActiveRoom(roomId));
+    list.appendChild(div);
+  });
+}
+
+function renderPeers() {
+  const list = document.getElementById('peersList');
+  const identity = KeyManager.getMyIdentity();
+  const peers = KeyManager.getAllPeers();
+  const activeRoom = Client.getActiveRoom();
+
+  let html = `<div class="peer-item">
+    <div class="peer-avatar" style="background:var(--accent-dim);border-color:rgba(88,166,255,0.3);">
+      ${(identity.username[0]||'?').toUpperCase()}
+      <div class="peer-status-dot verified"></div>
+    </div>
+    <div class="peer-name me">${identity.username} (я)</div>
+    <span title="Мой SAS">${identity.sas}</span>
+  </div>`;
+
+  const statusIcons = { new: '🔴', handshake: '🟡', connected: '🟡', verified: '🟢', blocked: '⛔' };
+
+  peers.forEach(peer => {
+    html += `<div class="peer-item" data-peer-id="${peer.id}" style="cursor:pointer;">
+      <div class="peer-avatar">
+        ${(peer.username[0]||'?').toUpperCase()}
+        <div class="peer-status-dot ${peer.trustStatus}"></div>
+      </div>
+      <div class="peer-name">${peer.username}</div>
+      <span title="Статус">${statusIcons[peer.trustStatus] || '⚪'}</span>
+    </div>`;
+  });
+
+  list.innerHTML = html;
+
+  list.querySelectorAll('[data-peer-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const peerId = el.dataset.peerId;
+      Client.verifyPeer(peerId);
+    });
+  });
+
+  // Update chat header peer count
+  if (window._updateChatSub) window._updateChatSub();
+}
+
+// ── Chat window ──
+let _chatMsgContainer = null;
+
+function showEmptyState() {
+  const cw = document.getElementById('chatWindow');
+  cw.innerHTML = '';
+  const es = document.createElement('div');
+  es.className = 'empty-state';
+  es.id = 'emptyState';
+  es.innerHTML = `
+    <span class="material-icons empty-state-icon">hub</span>
+    <div class="empty-state-title">P2P Hub</div>
+    <div class="empty-state-sub">Нажмите «+» чтобы войти в комнату. Сообщения зашифрованы E2EE прямо в браузере.</div>
+  `;
+  cw.appendChild(es);
+}
+
+function renderChatWindow(roomId) {
+  const cw = document.getElementById('chatWindow');
+  cw.innerHTML = '';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'chat-header';
+  header.innerHTML = `
+    <button class="back-btn" id="backBtn"><span class="material-icons">arrow_back</span></button>
+    <div class="chat-header-icon">#</div>
+    <div class="chat-header-info">
+      <div class="chat-header-name">${roomId}</div>
+      <div class="chat-header-sub" id="chatHeaderSub">Загрузка...</div>
+    </div>
+    <button class="icon-btn" id="leaveRoomBtn" title="Покинуть комнату">
+      <span class="material-icons">exit_to_app</span>
+    </button>
+  `;
+  cw.appendChild(header);
+
+  // E2EE badge
+  const badge = document.createElement('div');
+  badge.className = 'e2ee-badge';
+  badge.innerHTML = `<span class="material-icons">lock</span> End-to-End Encrypted · AES-256-GCM + ECDH`;
+  cw.appendChild(badge);
+
+  // Messages container
+  const msgContainer = document.createElement('div');
+  msgContainer.className = 'messages-container';
+  msgContainer.id = 'msgContainer';
+  _chatMsgContainer = msgContainer;
+  cw.appendChild(msgContainer);
+
+  // Render existing messages
+  const room = Client.getRoom(roomId);
+  if (room) {
+    room.messages.forEach(msg => _appendMsgEl(msg, msgContainer));
+  }
+  msgContainer.scrollTop = msgContainer.scrollHeight;
+
+  // Typing indicator
+  const typingEl = document.createElement('div');
+  typingEl.className = 'typing-indicator';
+  typingEl.id = 'typingIndicator';
+  typingEl.innerHTML = '<span></span><span></span><span></span>';
+  msgContainer.appendChild(typingEl);
+
+  // Input area
+  const inputArea = document.createElement('div');
+  inputArea.className = 'input-area';
+  inputArea.innerHTML = `
+    <textarea class="input-field" id="msgInput" placeholder="Сообщение (E2EE)..." rows="1"></textarea>
+    <button class="send-btn" id="sendMsgBtn"><span class="material-icons">send</span></button>
+  `;
+  cw.appendChild(inputArea);
+
+  // Update peer count in chat header whenever peers change
+  const updateSub = () => {
+    const peers = KeyManager.getAllPeers().filter(p => p.trustStatus !== 'blocked');
+    const sub = document.getElementById('chatHeaderSub');
+    if (sub) sub.textContent = peers.length > 0 ? `${peers.length} участн.` : 'Ожидаем участников...';
+  };
+  updateSub();
+  // Store reference so renderPeers can call it
+  window._updateChatSub = updateSub;
+
+  // Events
+  document.getElementById('backBtn').addEventListener('click', () => {
+    document.getElementById('appContainer').classList.remove('mobile-chat-open');
+    Client._activeRoom = null;
+    showEmptyState();
+    renderRooms();
+  });
+
+  document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+    if (confirm(`Покинуть комнату #${roomId}?`)) {
+      Client.leaveRoom(roomId);
+    }
+  });
+
+  const input = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendMsgBtn');
+
+  async function sendMsg() {
+    const text = input.value.trim();
+    if (!text) return;
+    const activeRoom = Client.getActiveRoom();
+    if (!activeRoom) return;
+    input.value = '';
+    input.style.height = 'auto';
+    await Client.sendTextMessage(activeRoom, text);
+  }
+
+  sendBtn.addEventListener('click', sendMsg);
+  input.addEventListener('keypress', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  });
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+}
+
+function _appendMsgEl(msg, container) {
+  if (!container) container = _chatMsgContainer;
+  if (!container) return;
+
+  const typing = container.querySelector('#typingIndicator');
+
+  const div = document.createElement('div');
+
+  if (msg.type === 'system') {
+    div.className = 'message system';
+    div.textContent = msg.text;
+  } else {
+    // Sender label
+    if (msg.type === 'other' && msg.username) {
+      const sender = document.createElement('div');
+      sender.className = 'message-sender';
+      sender.textContent = msg.username;
+      if (typing) container.insertBefore(sender, typing);
+      else container.appendChild(sender);
+    }
+
+    div.className = 'message ' + msg.type + (msg.encrypted ? ' encrypted' : '');
+    if (msg.encrypted) {
+      div.innerHTML = `🔒 <em>Зашифровано (ожидаем ключ)</em><span class="time">${msg.time}</span>`;
+    } else {
+      const escaped = (msg.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      div.innerHTML = `${escaped}<span class="time">${msg.time}</span>`;
+    }
+  }
+
+  if (typing) container.insertBefore(div, typing);
+  else container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendMessage(msg) {
+  const container = document.getElementById('msgContainer');
+  if (!container) return;
+  _appendMsgEl(msg, container);
+}
+
+function addSystemMessage(roomId, text) {
+  const room = Client.getRoom(roomId);
+  if (!room) return;
+  const msg = { type: 'system', text };
+  room.messages.push(msg);
+  if (Client.getActiveRoom() === roomId) appendMessage(msg);
+}
+
+// ── Modals ──
+function openModal(id) { document.getElementById(id).classList.add('visible'); }
+function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+let _verifyTarget = null;
+
+function openVerifyModal(peer) {
+  _verifyTarget = peer;
+  document.getElementById('verifyModalSub').textContent = `Сравните SAS-отпечаток с ${peer.username} по другому каналу (например, голосовому)`;
+  document.getElementById('verifySas').textContent = peer.sas;
+  document.getElementById('verifyFpDetail').textContent = `ID: ${peer.id}`;
+  openModal('verifyModal');
+}
+
+document.getElementById('verifyOk').addEventListener('click', async () => {
+  if (_verifyTarget) {
+    await Client.markPeerTrust(_verifyTarget.id, 'verified');
+    _verifyTarget = null;
+  }
+  closeModal('verifyModal');
+});
+
+document.getElementById('verifyBlock').addEventListener('click', async () => {
+  if (_verifyTarget) {
+    await Client.markPeerTrust(_verifyTarget.id, 'blocked');
+    _verifyTarget = null;
+  }
+  closeModal('verifyModal');
+});
+
+// Join modal
+document.getElementById('joinRoomBtn').addEventListener('click', () => {
+  document.getElementById('roomNameInput').value = '';
+  openModal('joinModal');
+  setTimeout(() => document.getElementById('roomNameInput').focus(), 100);
+});
+
+document.getElementById('joinModalCancel').addEventListener('click', () => closeModal('joinModal'));
+
+document.getElementById('joinModalOk').addEventListener('click', async () => {
+  const roomId = document.getElementById('roomNameInput').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+  if (!roomId) return;
+  closeModal('joinModal');
+  await Client.joinRoom(roomId);
+  if (window.innerWidth <= 768) {
+    document.getElementById('appContainer').classList.add('mobile-chat-open');
+  }
+});
+
+document.getElementById('roomNameInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('joinModalOk').click();
+});
+
+// Profile modal
+document.getElementById('myProfileBtn').addEventListener('click', () => {
+  const id = KeyManager.getMyIdentity();
+  document.getElementById('profileUsername').textContent = id.username;
+  document.getElementById('profileId').textContent = id.id;
+  document.getElementById('profileSas').textContent = id.sas;
+  openModal('profileModal');
+});
+
+document.getElementById('profileClose').addEventListener('click', () => closeModal('profileModal'));
+
+document.getElementById('profileRegen').addEventListener('click', async () => {
+  if (!confirm('Сбросить ключи? Это необратимо — вас не узнают старые собеседники.')) return;
+  const username = KeyManager.getMyIdentity().username;
+  KeyManager.clearMyIdentity();
+  await KeyManager.generateNewIdentity(username);
+  showToast('Ключи сброшены. Перезагрузите страницу.', 'warn');
+  closeModal('profileModal');
+});
+
+// Close modals on overlay click
+['joinModal','verifyModal','profileModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) closeModal(id);
+  });
+});
+
+// ══════════════════════════════════════════════
+// SETUP FLOW
+// ══════════════════════════════════════════════
+document.getElementById('usernameInput').focus();
+
+// Показать/скрыть поле кастомного брокера
+document.getElementById('brokerSelect').addEventListener('change', function() {
+  const customInput = document.getElementById('customBrokerInput');
+  customInput.style.display = this.value === 'custom' ? 'block' : 'none';
+  if (this.value === 'custom') customInput.focus();
+});
+
+function getSelectedBrokerUrl() {
+  const sel = document.getElementById('brokerSelect').value;
+  if (sel === 'auto') return null; // null = перебрать всё
+  if (sel === 'custom') {
+    const v = document.getElementById('customBrokerInput').value.trim();
+    return v || null;
+  }
+  return sel;
+}
+
+document.getElementById('startBtn').addEventListener('click', async () => {
+  const username = document.getElementById('usernameInput').value.trim();
+  if (!username) { showToast('Введите никнейм', 'warn'); return; }
+
+  const btn = document.getElementById('startBtn');
+  const spinner = document.getElementById('startSpinner');
+  const btnText = document.getElementById('startBtnText');
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  btnText.textContent = 'Генерация ключей...';
+
+  try {
+    const exists = await KeyManager.init();
+    if (!exists) {
+      await KeyManager.generateNewIdentity(username);
+    } else {
+      KeyManager.getMyIdentity().username = username;
+      await KeyManager.saveMyIdentity();
+    }
+
+    const identity = KeyManager.getMyIdentity();
+    document.getElementById('myFpId').textContent = identity.id;
+    document.getElementById('mySas').textContent = identity.sas;
+    document.getElementById('fingerprintBlock').classList.add('visible');
+
+    btnText.textContent = 'Поиск брокера...';
+
+    const preferredUrl = getSelectedBrokerUrl(); // null = авто
+    await Transport.connect(preferredUrl);
+
+    await Client.init();
+
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'flex';
+    renderRooms();
+    renderPeers();
+
+    showToast(`Добро пожаловать, ${identity.username}! 🔐`, 'success');
+  } catch(e) {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    btnText.textContent = 'Создать личность и войти';
+    showToast('Не удалось подключиться ни к одному брокеру. Проверьте интернет или введите свой адрес.', 'error');
+    console.error(e);
+  }
+});
+
+document.getElementById('usernameInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('startBtn').click();
+});
+
+})();
+</script>
+</body>
+</html>
